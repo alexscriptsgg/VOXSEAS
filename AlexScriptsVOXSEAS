@@ -1,0 +1,245 @@
+--// Modern Chest & Island ESP + Auto Collect GUI
+--// Put inside StarterGui > LocalScript for testing
+
+local player = game.Players.LocalPlayer
+
+-- Create ScreenGui safely
+local gui = Instance.new("ScreenGui")
+gui.Name = "ChestCollectorGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+--// Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 200) -- shorter since no NPC button
+frame.Position = UDim2.new(0.35, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Visible = true
+frame.Active = true
+frame.Draggable = true
+frame.ClipsDescendants = true
+frame.Parent = gui
+
+--// UI Corner
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+--// Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = frame
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = titleBar
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -30, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "Vox Seas Script"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.BackgroundTransparency = 1
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -28, 0, 2)
+closeBtn.Text = "X"
+closeBtn.TextSize = 18
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.TextColor3 = Color3.new(1,1,1)
+closeBtn.Parent = titleBar
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(1,0)
+closeCorner.Parent = closeBtn
+
+--// Watermark
+local watermark = Instance.new("TextLabel")
+watermark.Name = "Watermark"
+watermark.Size = UDim2.new(1, -20, 0, 18)
+watermark.Position = UDim2.new(0, 10, 0, 32)
+watermark.BackgroundTransparency = 1
+watermark.Text = "AlexScripts 🔴 YouTube"
+watermark.TextColor3 = Color3.fromRGB(200, 50, 50)
+watermark.Font = Enum.Font.SourceSansBold
+watermark.TextSize = 16
+watermark.TextXAlignment = Enum.TextXAlignment.Left
+watermark.Parent = frame
+
+--// Button Creator
+local function createButton(txt, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = UDim2.new(0.05, 0, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.Text = txt
+    btn.Parent = frame
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = btn
+    return btn
+end
+
+-- Buttons
+local espBtn      = createButton("Chest ESP: OFF",   55)
+local autoBtn     = createButton("Auto Collect: OFF", 100)
+local islandBtn   = createButton("Island ESP: OFF", 145)
+
+-- Vars
+local chestESP = false
+local autoCollect = false
+local islandESP = false
+
+local espFolder = Instance.new("Folder")
+espFolder.Name = "ESPFolder"
+espFolder.Parent = workspace
+
+-- Targets
+local islandNames = {
+    "Foosha Village",
+    "Marine Island",
+    "Central Town",
+    "Werewolf's Island",
+    "Orange Town",
+    "Sandstorm Island",
+    "Frost Island",
+    "Marine Ford",
+    "Skypie Lower",
+    "Skypie Upper",
+    "Prison",
+    "Coliseum",
+    "Vulcan Island",
+    "Fountain Island",
+    "Shipwreck",
+    "Drowned Fleet",
+    "Dark Arena"
+}
+
+--// ESP Maker
+local function makeESP(obj, labelText, color)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0,120,0,20)
+    billboard.AlwaysOnTop = true
+    billboard.Adornee = obj
+    billboard.Parent = espFolder
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Text = "["..labelText.."]"
+    label.TextColor3 = color or Color3.fromRGB(255, 255, 0)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 14
+    label.Parent = billboard
+end
+
+--// Refresh ESP
+local function refreshESP()
+    espFolder:ClearAllChildren()
+    
+    if chestESP then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name:lower():find("chest") then
+                makeESP(obj, "CHEST", Color3.fromRGB(255,255,0))
+            end
+        end
+    end
+    
+    if islandESP then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and table.find(islandNames, obj.Name) then
+                local part = obj:FindFirstChildWhichIsA("BasePart")
+                if part then
+                    makeESP(part, obj.Name, Color3.fromRGB(200,100,255))
+                end
+            end
+        end
+    end
+end
+
+-- Auto Collect
+local function collectChests()
+    task.spawn(function()
+        while autoCollect do
+            for _, chest in pairs(workspace:GetDescendants()) do
+                if not autoCollect then break end
+                if chest:IsA("BasePart") and chest.Name:lower():find("chest") then
+                    if player.Character then
+                        player.Character:MoveTo(chest.Position + Vector3.new(0,3,0))
+                    end
+                    task.wait(0.5)
+                end
+            end
+            task.wait(1)
+        end
+    end)
+end
+
+-- Button Logic
+espBtn.MouseButton1Click:Connect(function()
+    chestESP = not chestESP
+    espBtn.Text = "Chest ESP: " .. (chestESP and "ON" or "OFF")
+    espBtn.BackgroundColor3 = chestESP and Color3.fromRGB(50,150,50) or Color3.fromRGB(60,60,60)
+    refreshESP()
+end)
+
+autoBtn.MouseButton1Click:Connect(function()
+    autoCollect = not autoCollect
+    autoBtn.Text = "Auto Collect: " .. (autoCollect and "ON" or "OFF")
+    autoBtn.BackgroundColor3 = autoCollect and Color3.fromRGB(50,150,50) or Color3.fromRGB(60,60,60)
+    if autoCollect then
+        collectChests()
+    end
+end)
+
+islandBtn.MouseButton1Click:Connect(function()
+    islandESP = not islandESP
+    islandBtn.Text = "Island ESP: " .. (islandESP and "ON" or "OFF")
+    islandBtn.BackgroundColor3 = islandESP and Color3.fromRGB(50,150,50) or Color3.fromRGB(60,60,60)
+    refreshESP()
+end)
+
+-- Close/Open toggle
+closeBtn.MouseButton1Click:Connect(function()
+    frame.Visible = false
+    local reopen = Instance.new("TextButton")
+    reopen.Size = UDim2.new(0,100,0,30)
+    reopen.Position = UDim2.new(0,20,0,20)
+    reopen.Text = "Open Map GUI"
+    reopen.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    reopen.TextColor3 = Color3.new(1,1,1)
+    reopen.Parent = gui
+    local reopenCorner = Instance.new("UICorner")
+    reopenCorner.CornerRadius = UDim.new(0,8)
+    reopenCorner.Parent = reopen
+
+    reopen.MouseButton1Click:Connect(function()
+        frame.Visible = true
+        reopen:Destroy()
+    end)
+end)
+
+-- Update ESP live
+workspace.DescendantAdded:Connect(function(obj)
+    task.wait(0.1)
+    if chestESP and obj:IsA("BasePart") and obj.Name:lower():find("chest") then
+        makeESP(obj, "CHEST", Color3.fromRGB(255,255,0))
+    end
+    if islandESP and obj:IsA("Model") and table.find(islandNames, obj.Name) then
+        local part = obj:FindFirstChildWhichIsA("BasePart")
+        if part then
+            makeESP(part, obj.Name, Color3.fromRGB(200,100,255))
+        end
+    end
+end)
